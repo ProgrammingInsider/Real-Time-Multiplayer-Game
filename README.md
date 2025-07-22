@@ -97,6 +97,8 @@ These values are currently hardcoded inside the backend `GameGateway` class for 
 
 ### Frontend
 
+- Used emojis instead of icons for a lightweight, expressive, and dependency-free game interface.
+- Chose the **Press Start 2P** font to evoke a retro arcade vibe, perfect for a casual multiplayer game.
 - Built with **React + Vite** for fast and modular UI development.
 - Used **WebSocket client** to connect to backend and listen/respond to events like `player_update`, `game_start`, `new_round`, `round_result`, and `game_over`.
 - Managed **game state** (players, scores, current round, spinning status) via **React hooks** and context/state for responsive UI updates.
