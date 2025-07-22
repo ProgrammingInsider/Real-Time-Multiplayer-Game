@@ -76,9 +76,9 @@ The frontend is built with **React** (using Vite) and the backend is a **NestJS*
 - **Total Rounds:** 5  
 - **Minimum Players to Start:** 2  
 - **Backend WebSocket Port:** 3002  
-- **Game Start Countdown:** 10 seconds  
-- **Round Duration:** 15 seconds  
-- **Delay Between Rounds:** 10 seconds  
+- **Game Start Countdown:** 5 seconds  
+- **Round Duration:** 10 seconds  
+- **Delay Between Rounds:** 5 seconds  
 
 These values are currently hardcoded inside the backend `GameGateway` class for simplicity.
 
@@ -130,4 +130,4 @@ If you have any questions or need clarifications, feel free to reach out to me:
 
 A short screen recording showing real-time multiplayer interaction:
 
-📺 [Watch the demo video](https://your-demo-link.com)
+📺 [Watch the demo video](https://youtu.be/438o0gsPrJs)

@@ -35,16 +35,19 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
   private roundDuration = 10; // seconds for each round
   private nextRoundDelay = 5; // seconds between rounds
 
+  // Fires when a socket connects
   handleConnection(client: Socket) {
     console.log(`Client connected: ${client.id}`);
   }
 
+  // Fires when a socket disconnects
   handleDisconnect(client: Socket) {
     console.log(`Client disconnected: ${client.id}`);
-    // Find the player that just disconnected
+
     const leftPlayer = this.players.find((p) => p.playerId === client.id);
 
     if (leftPlayer) {
+      // Remove player from list
       this.players = this.players.filter((p) => p.playerId !== client.id);
 
       this.server.emit('player_update', this.players);
@@ -56,6 +59,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
+  // Handle player joining the game
   @SubscribeMessage('join_game')
   handleJoinGame(
     @MessageBody() playerName: string,
@@ -73,18 +77,17 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.server.emit('player_update', this.players);
     client.broadcast.emit('player_joined', newPlayer);
 
+    // Start game if enough players
     if (!this.gameStarted && this.players.length >= this.minPlayers) {
-      console.log('Starting game');
-
       this.beginGameWithCountdown();
     }
   }
 
+  // Notify clients and begin countdown to game start
   private beginGameWithCountdown() {
     this.gameStarted = true;
     this.currentRound = 0;
 
-    // Notify game is starting soon
     this.server.emit('game_start', {
       message: 'Game is starting!',
       duration: this.gameStartCountdown,
@@ -92,12 +95,12 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       totalRounds: this.totalRounds,
     });
 
-    // Delay before actual first round
     setTimeout(() => {
       this.runNextRound();
     }, this.gameStartCountdown * 1000);
   }
 
+  // Start a new round or end game if all rounds completed
   private runNextRound() {
     this.currentRound++;
 
@@ -119,6 +122,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }, this.roundDuration * 1000);
   }
 
+  // Randomly select a round winner
   private selectRoundWinner() {
     if (this.players.length === 0) return;
 
@@ -142,6 +146,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }, this.nextRoundDelay * 1000);
   }
 
+  // End the game and send final results
   private endGame() {
     const maxScore = Math.max(...this.players.map((p) => p.score));
     const winners = this.players.filter((p) => p.score === maxScore);
@@ -161,15 +166,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.server.emit('game_reset');
   }
 
-  private pauseGame() {
-    this.gameStarted = false;
-    this.server.emit('game_paused', {
-      message: 'Not enough players. Waiting for more players to join...',
-      minPlayers: this.minPlayers,
-      currentPlayers: this.players,
-    });
-  }
-
+  // Allow player to leave the game
   @SubscribeMessage('leave_game')
   handleLeaveGame(@ConnectedSocket() client: Socket) {
     this.handleDisconnect(client);
@@ -181,6 +178,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
+  // Reset all game state
   private resetGame() {
     this.gameStarted = false;
     this.currentRound = 0;
