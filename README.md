@@ -58,7 +58,7 @@ The frontend is built with **React** (using Vite) and the backend is a **NestJS*
    ```bash
    cd server
    npm install
-   npm run start:dev
+   npm start
 
 
 2. Install dependencies and start the frontend client:
