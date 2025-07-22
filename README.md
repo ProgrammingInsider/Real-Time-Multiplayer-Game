@@ -126,7 +126,7 @@ If you have any questions or need clarifications, feel free to reach out to me:
 
 ---
 
-## Demo Video (Optional)
+## Demo Video
 
 A short screen recording showing real-time multiplayer interaction:
 
