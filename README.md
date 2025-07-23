@@ -46,6 +46,14 @@ The frontend is built with **React** (using Vite) and the backend is a **NestJS*
 - Node.js (v22 or later)
 - npm or yarn
 
+### Troubleshooting
+
+#### ❗ Antivirus Blocking Build Tools
+
+Some antivirus software (e.g. Smadav) may block esbuild, causing errors during the build or startup process.
+**Recommended fix:** Temporarily disable your antivirus if the app fails to start or build.
+
+
 ### Environment Variables
 - Create a .env file in the client directory with the following:
 

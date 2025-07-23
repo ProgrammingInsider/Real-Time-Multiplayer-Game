@@ -2,10 +2,11 @@ import { useEffect } from 'react';
 import type {
   Player,
   GameOverPayload,
-  GamePausedPayload,
+  // GamePausedPayload,
   RoundResultPayload,
   NewRoundPayload,
-  GameStartPayload
+  GameStartPayload,
+  LatePlayer
 } from '../types';
 import { useGlobalContext } from '../context/GlobalContext';
 
@@ -20,7 +21,6 @@ interface UseGameSocketProps {
 }
 
 export const useGameSocket = ({
-
   setStatus,
   setCurrentRound,
   setTotalRounds,
@@ -29,13 +29,43 @@ export const useGameSocket = ({
   setRoundWinnerMessage,
   setIsGameOver,
 }: UseGameSocketProps) => {
+
   const { you, setYou, setNotification, setPlayers, setSpinningPlayers, socket } = useGlobalContext();
+
   useEffect(() => {
     if (!socket) return;
 
     socket.on('player_joined', (player: Player) => {
       setNotification(`${player.playerName} joined the game`);
       setYou((prev) => [...prev, player]);
+    });
+
+    socket.on('joined_game', (player: Player) => {
+      setNotification(`${player.playerName} joined the game`);
+      setYou((prev) => [...prev, player]);
+    });
+
+    socket.on('late_joined', (latePlayer: LatePlayer) => {
+      if (latePlayer.gameStarted) {
+        const startTime = latePlayer.currentRoundStartTime || Date.now();
+        const duration = latePlayer.duration || 10;
+        const remaining = Math.ceil((startTime + duration * 1000 - Date.now()) / 1000);
+        
+        if (remaining > 0) {
+          setStatus(`All players spinning`);
+          setRoundStartTime(latePlayer.currentRoundStartTime || null);
+          setRoundTime(latePlayer.duration || null);
+          setCurrentRound(latePlayer.currentRound);
+          setSpinningPlayers(true);
+        } else {
+          setStatus('Waiting for next round...');
+          setRoundStartTime(null);
+          setRoundTime(null); 
+          setCurrentRound(1);
+          setCurrentRound(latePlayer.currentRound);
+          setSpinningPlayers(false);
+        }
+      }
     });
 
     socket.on('player_left', (player: Player) => {
@@ -81,18 +111,22 @@ export const useGameSocket = ({
       setRoundStartTime(res.countdownStart);
     });
 
-    socket.on('game_paused', (res: GamePausedPayload) => {
-      setStatus(res.message);
-      setSpinningPlayers(false);
-      setRoundStartTime(null);
-      setRoundTime(null);
-      setPlayers(res.currentPlayers);
-    });
-
     socket.on('game_over', (res: GameOverPayload) => {
       setStatus('Game Over!');
       setIsGameOver(true);
       setPlayers(res.finalScores);
+    });
+
+    socket.on('game_reset', () => {
+      setStatus('Waiting for players...');
+      setYou([]);
+      setPlayers([]);
+      setSpinningPlayers(false);
+      setRoundTime(null);
+      setRoundStartTime(null);
+      setCurrentRound(1);
+      setTotalRounds(5);
+      setIsGameOver(false);
     });
 
     return () => {
@@ -102,7 +136,6 @@ export const useGameSocket = ({
       socket.off('game_start');
       socket.off('new_round');
       socket.off('round_result');
-      socket.off('game_paused');
       socket.off('game_over');
     };
   }, [socket, you, setNotification, setYou, setPlayers, setSpinningPlayers, setStatus, setCurrentRound, setTotalRounds, setRoundTime, setRoundStartTime, setRoundWinnerMessage, setIsGameOver]);

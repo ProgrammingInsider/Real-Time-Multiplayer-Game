@@ -15,6 +15,13 @@ interface Player {
   score: number;
 }
 
+interface LatePlayer {
+  gameStarted: boolean;
+  currentRoundStartTime: number | null;
+  duration: number;
+  currentRound: number;
+}
+
 @WebSocketGateway(3002, {
   cors: {
     origin: '*',
@@ -25,6 +32,10 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
   server: Server;
 
   private players: Player[] = [];
+  private currentRoundStartTime: number | null = null;
+  private roundTimeout: NodeJS.Timeout | null = null;
+  private nextRoundTimeout: NodeJS.Timeout | null = null;
+
   private gameStarted = false;
   private currentRound = 0;
   private totalRounds = 5;
@@ -70,12 +81,21 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       score: 0,
     };
 
+    const latePlayer: LatePlayer = {
+      gameStarted: this.gameStarted,
+      currentRoundStartTime: this.currentRoundStartTime,
+      duration: this.roundDuration,
+      currentRound: this.currentRound,
+    };
     this.players.push(newPlayer);
 
     client.emit('joined_game', newPlayer);
     this.server.emit('player_update', this.players);
     client.broadcast.emit('player_joined', newPlayer);
 
+    if (this.gameStarted) {
+      client.emit('late_joined', latePlayer);
+    }
     // Start game if enough players
     if (!this.gameStarted && this.players.length >= this.minPlayers) {
       this.beginGameWithCountdown();
@@ -107,16 +127,18 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       return this.endGame();
     }
 
+    this.currentRoundStartTime = Date.now();
+
     // Notify new round + round countdown
     this.server.emit('new_round', {
       round: this.currentRound,
       totalRounds: this.totalRounds,
       duration: this.roundDuration,
-      countdownStart: Date.now(),
+      countdownStart: this.currentRoundStartTime,
     });
 
     // Wait for round duration before selecting winner
-    setTimeout(() => {
+    this.roundTimeout = setTimeout(() => {
       this.selectRoundWinner();
     }, this.roundDuration * 1000);
   }
@@ -140,7 +162,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     });
     this.server.emit('player_update', this.players);
 
-    setTimeout(() => {
+    this.nextRoundTimeout = setTimeout(() => {
       this.runNextRound();
     }, this.nextRoundDelay * 1000);
   }
@@ -160,9 +182,6 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
   handleRestartGame(@ConnectedSocket() client: Socket) {
     console.log(`Game restarted by: ${client.id}`);
     this.resetGame();
-
-    // Optionally notify clients that the game has been reset
-    this.server.emit('game_reset');
   }
 
   // Allow player to leave the game
@@ -174,6 +193,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (this.players.length === 0) {
       this.gameStarted = false;
       this.resetGame();
+      this.server.emit('game_reset');
     }
   }
 
@@ -182,5 +202,11 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.gameStarted = false;
     this.currentRound = 0;
     this.players = [];
+    this.currentRoundStartTime = null;
+
+    if (this.roundTimeout) clearTimeout(this.roundTimeout);
+    if (this.nextRoundTimeout) clearTimeout(this.nextRoundTimeout);
+    this.roundTimeout = null;
+    this.nextRoundTimeout = null;
   }
 }

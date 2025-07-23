@@ -4,6 +4,13 @@ export interface Player {
   score: number;
 }
 
+export interface LatePlayer {
+  gameStarted: boolean;
+  currentRoundStartTime: number | null;
+  duration: number;
+  currentRound: number;
+}
+
 export interface GameState {
   players: Player[]
   round: number
@@ -33,11 +40,11 @@ export type RoundResultPayload = {
   countdownStart: number;
 };
 
-export type GamePausedPayload = {
-  message: string;
-  minPlayers: number;
-  currentPlayers: Player[];
-};
+// export type GamePausedPayload = {
+//   message: string;
+//   minPlayers: number;
+//   currentPlayers: Player[];
+// };
 
 export type GameOverPayload = {
   finalScores: Player[];
